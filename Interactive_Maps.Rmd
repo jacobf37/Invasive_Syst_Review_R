@@ -1,0 +1,206 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r message=FALSE, warning=FALSE}
+library(raster)
+library(sf)
+library(dplyr)
+library(stringr)
+library(leaflet)
+library(htmlwidgets)
+library(mapview)
+library(leafgl)
+library(colourvalues)
+```
+
+```{r Load base layer, message=FALSE, warning=FALSE}
+base_lyr <- st_read('./Spatial_Data/NA_lyr_clip.shp', quiet = T) %>% st_zm() %>% st_cast("POLYGON") %>% st_cast('LINESTRING')
+```
+
+```{r Write species layers, eval=FALSE}
+#Already run
+#Clip point layer
+pnt_crop <- st_crop(comb_sf, st_bbox(base_lyr)) %>% 
+  mutate(Scientific_Name = as.factor(Scientific_Name)) %>% 
+  filter()
+
+#Split point layer into forms and species
+pnt_crop %>% group_by(Form, Scientific_Name) %>% 
+  group_walk(~ st_write(.x, paste0('./Spatial_Data/', .y$Form, '_', str_replace_all(.y$Scientific_Name, ' ', '_'), '.gpkg'), driver = 'GPKG'))
+
+```
+
+
+```{r}
+fllst <- list.files(path = './Spatial_Data', pattern = '[.]gpkg', full.names = T)
+
+```
+
+
+
+
+
+```{r Read tree layers, message=FALSE, warning=FALSE}
+tree_fllst <- fllst[grepl('/TREE', fllst)]
+tree_lyrs <- lapply(tree_fllst, st_read, quiet=T)
+tree_names <- tree_fllst %>% str_split_i(pattern = '/', i = 3) %>% str_remove_all('[.]gpkg|TREE_')
+names(tree_lyrs) <- tree_names
+
+tree_pal <- c('#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c')
+
+```
+
+```{r Map trees}
+m <- leaflet(options = leafletOptions(minZoom = 4, maxZoom = 7)) %>% 
+  addGlPolylines(base_lyr, color = 'black', weight = 0.5)
+
+for (i in 1:length(tree_lyrs)){
+  m <- m %>% 
+    addGlPoints(data = tree_lyrs[[i]], fillColor = tree_pal[i], group = names(tree_lyrs)[i] %>% str_replace_all('_', ' '), fillOpacity = 1.0, radius = 5)
+}
+
+m <- m %>% 
+  addLayersControl(overlayGroups = names(tree_lyrs) %>% str_replace_all('_', ' ')) %>% 
+  setMaxBounds(-109, 24, -58, 56) 
+
+m
+```
+
+
+```{r Read grass layers, message=FALSE, warning=FALSE}
+grass_fllst <- fllst[grepl('/GRASS', fllst)]
+grass_lyrs <- lapply(grass_fllst, st_read, quiet=T)
+grass_names <- grass_fllst %>% str_split_i(pattern = '/', i = 3) %>% str_remove_all('[.]gpkg|GRASS_')
+names(grass_lyrs) <- grass_names
+
+grass_pal <- c('#1f78b4','#33a02c')
+
+```
+
+```{r Map grass}
+m <- leaflet(options = leafletOptions(minZoom = 4, maxZoom = 7)) %>% 
+  addGlPolylines(base_lyr, color = 'black', weight = 0.5)
+
+for (i in 1:length(grass_lyrs)){
+  m <- m %>% 
+    addGlPoints(data = grass_lyrs[[i]], fillColor = grass_pal[i], group = names(grass_lyrs)[i] %>% str_replace_all('_', ' '), fillOpacity = 1.0, radius = 5)
+}
+
+m <- m %>% 
+  addLayersControl(overlayGroups = names(grass_lyrs) %>% str_replace_all('_', ' ')) %>% 
+  setMaxBounds(-109, 24, -58, 56) 
+
+m
+```
+
+
+```{r Read forb layers, message=FALSE, warning=FALSE}
+forb_fllst <- fllst[grepl('/FORB', fllst)]
+forb_lyrs <- lapply(forb_fllst, st_read, quiet=T)
+forb_names <- forb_fllst %>% str_split_i(pattern = '/', i = 3) %>% str_remove_all('[.]gpkg|FORB_')
+names(forb_lyrs) <- forb_names
+
+forb_pal <- c('#1f78b4','#33a02c','#e31a1c','#6a3d9a')
+
+```
+
+```{r Map forbs}
+m <- leaflet(options = leafletOptions(minZoom = 4, maxZoom = 7)) %>% 
+  addGlPolylines(base_lyr, color = 'black', weight = 0.5)
+
+for (i in 1:length(forb_lyrs)){
+  m <- m %>% 
+    addGlPoints(data = forb_lyrs[[i]], fillColor = forb_pal[i], group = names(forb_lyrs)[i] %>% str_replace_all('_', ' '), fillOpacity = 1.0, radius = 5)
+}
+
+m <- m %>% 
+  addLayersControl(overlayGroups = names(forb_lyrs) %>% str_replace_all('_', ' ')) %>% 
+  setMaxBounds(-109, 24, -58, 56) 
+
+m
+```
+
+
+```{r Read vine layers, message=FALSE, warning=FALSE}
+vine_fllst <- fllst[grepl('/VINE', fllst)]
+vine_lyrs <- lapply(vine_fllst, st_read, quiet=T)
+vine_names <- vine_fllst %>% str_split_i(pattern = '/', i = 3) %>% str_remove_all('[.]gpkg|VINE_')
+names(vine_lyrs) <- vine_names
+
+vine_pal <- c('#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c')
+
+```
+
+```{r Map vines}
+m <- leaflet(options = leafletOptions(minZoom = 4, maxZoom = 7)) %>% 
+  addGlPolylines(base_lyr, color = 'black', weight = 0.5)
+
+for (i in 1:length(vine_lyrs)){
+  m <- m %>% 
+    addGlPoints(data = vine_lyrs[[i]], fillColor = vine_pal[i], group = names(vine_lyrs)[i] %>% str_replace_all('_', ' '), fillOpacity = 1.0, radius = 5)
+}
+
+m <- m %>% 
+  addLayersControl(overlayGroups = names(vine_lyrs) %>% str_replace_all('_', ' ')) %>% 
+  setMaxBounds(-109, 24, -58, 56) 
+
+m
+```
+
+
+```{r Read fern layers, message=FALSE, warning=FALSE}
+fern_fllst <- fllst[grepl('/FERN', fllst)]
+fern_lyrs <- lapply(fern_fllst, st_read, quiet=T)
+fern_names <- fern_fllst %>% str_split_i(pattern = '/', i = 3) %>% str_remove_all('[.]gpkg|FERN_')
+names(fern_lyrs) <- fern_names
+
+fern_pal <- c('#1f78b4','#33a02c')
+
+```
+
+```{r Map ferns}
+m <- leaflet(options = leafletOptions(minZoom = 4, maxZoom = 7)) %>% 
+  addGlPolylines(base_lyr, color = 'black', weight = 0.5)
+
+for (i in 1:length(fern_lyrs)){
+  m <- m %>% 
+    addGlPoints(data = fern_lyrs[[i]], fillColor = fern_pal[i], group = names(fern_lyrs)[i] %>% str_replace_all('_', ' '), fillOpacity = 1.0, radius = 5)
+}
+
+m <- m %>% 
+  addLayersControl(overlayGroups = names(fern_lyrs) %>% str_replace_all('_', ' ')) %>% 
+  setMaxBounds(-109, 24, -58, 56) 
+
+m
+```
+
+
+```{r Read subshrub layers, message=FALSE, warning=FALSE}
+subshrub_fllst <- fllst[grepl('/SUBSHRUB', fllst)]
+subshrub_lyrs <- lapply(subshrub_fllst, st_read, quiet=T)
+subshrub_names <- subshrub_fllst %>% str_split_i(pattern = '/', i = 3) %>% str_remove_all('[.]gpkg|SUBSHRUB_')
+names(subshrub_lyrs) <- subshrub_names
+
+subshrub_pal <- c('#1f78b4','#33a02c')
+
+```
+
+```{r Map subshrubs}
+m <- leaflet(options = leafletOptions(minZoom = 4, maxZoom = 7)) %>% 
+  addGlPolylines(base_lyr, color = 'black', weight = 0.5)
+
+for (i in 1:length(subshrub_lyrs)){
+  m <- m %>% 
+    addGlPoints(data = subshrub_lyrs[[i]], fillColor = subshrub_pal[i], group = names(subshrub_lyrs)[i] %>% str_replace_all('_', ' '), fillOpacity = 1.0, radius = 5)
+}
+
+m <- m %>% 
+  addLayersControl(overlayGroups = names(subshrub_lyrs) %>% str_replace_all('_', ' ')) %>% 
+  setMaxBounds(-109, 24, -58, 56) 
+
+m
+```

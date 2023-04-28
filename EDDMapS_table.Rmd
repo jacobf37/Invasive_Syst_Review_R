@@ -1,0 +1,308 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r message=FALSE}
+library(rFIA)
+library(DBI)
+library(maps)
+library(ggmap)
+library(sf)
+library(geodata)
+library(data.table)
+library(tidyverse)
+library(xlsx)
+library(ggtext)
+library(tidyterra)
+library(plotly)
+```
+
+```{r}
+sp_list <- read.xlsx('../SP_List.xlsx', sheetIndex = 2) %>% tibble() %>% 
+  select(Common_Name = Common.Name, Scientific_Name = Scientific.Name.s.,
+         PLANTS, FIA, Form)
+```
+
+```{r}
+ed_fllst <- list.files('D:/Invasive_Syst_Review/EDDMapS', pattern = 'mappings.csv', full.names = T, recursive = T)
+
+classes <- sapply(fread(ed_fllst[1L], sep=','), class)
+ed_lst <- lapply(ed_fllst, read_csv, show_col_types = F)
+ed_tb <- rbindlist(ed_lst) %>% 
+  select(SciName, ComName, OccStatus, Status, ObsDate, Latitude, Longitude, Datum) %>% 
+  filter(Status == 'Positive', 
+         !is.na(Latitude),
+         !is.na(Longitude),
+         str_detect(Datum, '83|27|84')) %>% as_tibble() %>% 
+  left_join(sp_list, by = c('SciName' = 'Scientific_Name'))
+rm(ed_lst)
+```
+
+```{r}
+fia_tb <- read_csv('FIA_INV.csv', show_col_types = F) %>% 
+  left_join(sp_list %>% select(Common_Name, Scientific_Name, PLANTS, Form), by = 'PLANTS') %>% 
+  select(-PLT_CN, -PLANTS, - INVYR)
+```
+
+```{r}
+comb_tb <- fia_tb %>% 
+  bind_rows(ed_tb %>% select(LON = Longitude, LAT = Latitude, Common_Name, Scientific_Name = SciName, Form))
+
+comb_sf <- st_as_sf(comb_tb %>% as.data.frame(), coords = c('LON', 'LAT'), crs = 4326)
+st_write(comb_sf, "./Spatial_Data/Invasives_comb.shp", driver="ESRI Shapefile", append = F)
+```
+
+```{r}
+comb_sf %>% group_by(Form) %>% 
+  group_map(~ head(.x, 2L))
+
+```
+
+```{r}
+unique(ed_tb$SciName)
+```
+
+```{r}
+qmplot(Longitude, Latitude, 
+       data = ed_tb,
+       colour = SciName,
+       maptype = 'toner-lite',
+       #shape = I(21),
+       #color = I('black'),
+       #fill = I('red'),
+       #size = I(2.5),
+       #alpha = I(1),
+       f = 0.15,
+       #zoom = 12,
+       legend = 'none',
+       xlim=c(-105, -70),
+       ylim = c(25, 50)
+       ) +
+  facet_wrap(~ Form)
+```
+```{r}
+states_lyr <- readRDS('D:/NorthAmerica/gadm41_USA_1_pk.rds')
+can_lyr <- readRDS('D:/NorthAmerica/gadm41_CAN_1_pk.rds')
+
+xlabs = seq(-100, -60, 10)
+ylabs = seq(25, 50, 5)
+```
+
+```{r}
+form <- 'SHRUB'
+
+shrub_plot <- ggplot() + geom_sf(data = can_lyr) + geom_sf(data = states_lyr) +
+  scale_x_continuous(breaks = xlabs, labels = paste0(xlabs,'°W')) +
+  scale_y_continuous(breaks = ylabs, labels = paste0(ylabs,'°N')) +
+  labs(x = 'Longitude', y = 'Latitude') +
+  borders('lakes', fill = 'white') +
+  #labs(x = 'Longitude', y = 'Latitude') +
+  geom_point(data=comb_tb %>% filter(Form == form), aes(x=LON, y=LAT, fill = Scientific_Name), colour="black",pch=21) +
+  coord_sf(xlim=c(-105, -60), ylim = c(25, 50)) +
+  #coord_cartesian(xlim=c(-105, -68), ylim = c(25, 50)) +
+  theme_classic() +
+  labs(fill = 'Species') +
+  scale_fill_hue(breaks = comb_tb %>% 
+                                       filter(Form == form) %>% 
+                                       distinct(Scientific_Name) %>% 
+                                       arrange(Scientific_Name) %>% 
+                                       pull(),
+                     labels = paste0('*', comb_tb %>% 
+                                       filter(Form == form) %>% 
+                                       distinct(Scientific_Name) %>% 
+                                       arrange(Scientific_Name) %>% 
+                                       pull(), '*')) +
+  theme(legend.text = element_markdown())
+
+#ggsave(paste0('Invasive_', form, '.jpg'), width = 8, height = 6, units = 'in', dpi = 600)
+#ggsave(paste0('Invasive_', form, '.svg'), width = 8, height = 6, units = 'in', dpi = 600, device = 'svg')
+
+```
+```{r}
+form <- 'TREE'
+
+ggplot() + geom_sf(data = can_lyr) + geom_sf(data = states_lyr) +
+  scale_x_continuous(breaks = xlabs, labels = paste0(xlabs,'°W')) +
+  scale_y_continuous(breaks = ylabs, labels = paste0(ylabs,'°N')) +
+  labs(x = 'Longitude', y = 'Latitude') +
+  borders('lakes', fill = 'white') +
+  #labs(x = 'Longitude', y = 'Latitude') +
+  geom_point(data=comb_tb %>% filter(Form == form), aes(x=LON, y=LAT, fill = Scientific_Name), colour="black",pch=21) +
+  coord_sf(xlim=c(-105, -60), ylim = c(25, 50)) +
+  #coord_cartesian(xlim=c(-105, -68), ylim = c(25, 50)) +
+  theme_classic() +
+  labs(fill = 'Species') +
+  scale_fill_hue(breaks = ed_tb %>% 
+                                       filter(Form == form) %>% 
+                                       distinct(SciName) %>% 
+                                       arrange(SciName) %>% 
+                                       pull(),
+                     labels = paste0('*', ed_tb %>% 
+                                       filter(Form == form) %>% 
+                                       distinct(SciName) %>% 
+                                       arrange(SciName) %>% 
+                                       pull(), '*')) +
+  theme(legend.text = element_markdown())
+
+#ggsave(paste0('Invasive_', form, '.jpg'), width = 8, height = 6, units = 'in', dpi = 600)
+```
+
+```{r}
+form <- 'FERN'
+
+ggplot() + geom_sf(data = can_lyr) + geom_sf(data = states_lyr) +
+  scale_x_continuous(breaks = xlabs, labels = paste0(xlabs,'°W')) +
+  scale_y_continuous(breaks = ylabs, labels = paste0(ylabs,'°N')) +
+  labs(x = 'Longitude', y = 'Latitude') +
+  borders('lakes', fill = 'white') +
+  #labs(x = 'Longitude', y = 'Latitude') +
+  geom_point(data=comb_tb %>% filter(Form == form), aes(x=LON, y=LAT, fill = Scientific_Name), colour="black",pch=21) +
+  coord_sf(xlim=c(-105, -60), ylim = c(25, 50)) +
+  #coord_cartesian(xlim=c(-105, -68), ylim = c(25, 50)) +
+  theme_classic() +
+  labs(fill = 'Species') +
+  scale_fill_hue(breaks = ed_tb %>% 
+                                       filter(Form == form) %>% 
+                                       distinct(SciName) %>% 
+                                       arrange(SciName) %>% 
+                                       pull(),
+                     labels = paste0('*', ed_tb %>% 
+                                       filter(Form == form) %>% 
+                                       distinct(SciName) %>% 
+                                       arrange(SciName) %>% 
+                                       pull(), '*')) +
+  theme(legend.text = element_markdown())
+
+#ggsave(paste0('Invasive_', form, '.jpg'), width = 8, height = 6, units = 'in', dpi = 600)
+```
+
+
+```{r}
+form <- 'SUBSHRUB'
+
+ggplot() + geom_sf(data = can_lyr) + geom_sf(data = states_lyr) +
+  scale_x_continuous(breaks = xlabs, labels = paste0(xlabs,'°W')) +
+  scale_y_continuous(breaks = ylabs, labels = paste0(ylabs,'°N')) +
+  labs(x = 'Longitude', y = 'Latitude') +
+  borders('lakes', fill = 'white') +
+  #labs(x = 'Longitude', y = 'Latitude') +
+  geom_point(data=comb_tb %>% filter(Form == form), aes(x=LON, y=LAT, fill = Scientific_Name), colour="black",pch=21) +
+  coord_sf(xlim=c(-105, -60), ylim = c(25, 50)) +
+  #coord_cartesian(xlim=c(-105, -68), ylim = c(25, 50)) +
+  theme_classic() +
+  labs(fill = 'Species') +
+  scale_fill_hue(breaks = ed_tb %>% 
+                                       filter(Form == form) %>% 
+                                       distinct(SciName) %>% 
+                                       arrange(SciName) %>% 
+                                       pull(),
+                     labels = paste0('*', ed_tb %>% 
+                                       filter(Form == form) %>% 
+                                       distinct(SciName) %>% 
+                                       arrange(SciName) %>% 
+                                       pull(), '*')) +
+  theme(legend.text = element_markdown())
+
+#ggsave(paste0('Invasive_', form, '.jpg'), width = 8, height = 6, units = 'in', dpi = 600)
+```
+
+```{r}
+form <- 'FORB'
+
+ggplot() + geom_sf(data = can_lyr) + geom_sf(data = states_lyr) +
+  scale_x_continuous(breaks = xlabs, labels = paste0(xlabs,'°W')) +
+  scale_y_continuous(breaks = ylabs, labels = paste0(ylabs,'°N')) +
+  labs(x = 'Longitude', y = 'Latitude') +
+  borders('lakes', fill = 'white') +
+  #labs(x = 'Longitude', y = 'Latitude') +
+  geom_point(data=comb_tb %>% filter(Form == form), aes(x=LON, y=LAT, fill = Scientific_Name), colour="black",pch=21) +
+  coord_sf(xlim=c(-105, -60), ylim = c(25, 50)) +
+  #coord_cartesian(xlim=c(-105, -68), ylim = c(25, 50)) +
+  theme_classic() +
+  labs(fill = 'Species') +
+  scale_fill_hue(breaks = ed_tb %>% 
+                                       filter(Form == form) %>% 
+                                       distinct(SciName) %>% 
+                                       arrange(SciName) %>% 
+                                       pull(),
+                     labels = paste0('*', ed_tb %>% 
+                                       filter(Form == form) %>% 
+                                       distinct(SciName) %>% 
+                                       arrange(SciName) %>% 
+                                       pull(), '*')) +
+  theme(legend.text = element_markdown())
+
+#ggsave(paste0('Invasive_', form, '.jpg'), width = 8, height = 6, units = 'in', dpi = 600)
+```
+
+```{r}
+form <- 'GRASS'
+
+ggplot() + geom_sf(data = can_lyr) + geom_sf(data = states_lyr) +
+  scale_x_continuous(breaks = xlabs, labels = paste0(xlabs,'°W')) +
+  scale_y_continuous(breaks = ylabs, labels = paste0(ylabs,'°N')) +
+  labs(x = 'Longitude', y = 'Latitude') +
+  borders('lakes', fill = 'white') +
+  #labs(x = 'Longitude', y = 'Latitude') +
+  geom_point(data=comb_tb %>% filter(Form == form), aes(x=LON, y=LAT, fill = Scientific_Name), colour="black",pch=21) +
+  coord_sf(xlim=c(-105, -60), ylim = c(25, 50)) +
+  #coord_cartesian(xlim=c(-105, -68), ylim = c(25, 50)) +
+  theme_classic() +
+  labs(fill = 'Species') +
+  scale_fill_hue(breaks = ed_tb %>% 
+                                       filter(Form == form) %>% 
+                                       distinct(SciName) %>% 
+                                       arrange(SciName) %>% 
+                                       pull(),
+                     labels = paste0('*', ed_tb %>% 
+                                       filter(Form == form) %>% 
+                                       distinct(SciName) %>% 
+                                       arrange(SciName) %>% 
+                                       pull(), '*')) +
+  theme(legend.text = element_markdown())
+
+#ggsave(paste0('Invasive_', form, '.jpg'), width = 8, height = 6, units = 'in', dpi = 600)
+```
+
+```{r}
+form <- 'VINE'
+
+ggplot() + geom_sf(data = can_lyr) + geom_sf(data = states_lyr) +
+  scale_x_continuous(breaks = xlabs, labels = paste0(xlabs,'°W')) +
+  scale_y_continuous(breaks = ylabs, labels = paste0(ylabs,'°N')) +
+  labs(x = 'Longitude', y = 'Latitude') +
+  borders('lakes', fill = 'white') +
+  #labs(x = 'Longitude', y = 'Latitude') +
+  geom_point(data=comb_tb %>% filter(Form == form), 
+             aes(x=LON, y=LAT, fill = Scientific_Name), 
+             colour="black",
+             pch=21) +
+  coord_sf(xlim=c(-105, -60), ylim = c(25, 50)) +
+  #coord_cartesian(xlim=c(-105, -68), ylim = c(25, 50)) +
+  theme_classic() +
+  labs(fill = 'Species') +
+  scale_fill_discrete(breaks = ed_tb %>% 
+                                       filter(Form == form) %>% 
+                                       distinct(SciName) %>% 
+                                       arrange(SciName) %>% 
+                                       pull(),
+                     labels = paste0('*', ed_tb %>% 
+                                       filter(Form == form) %>% 
+                                       distinct(SciName) %>% 
+                                       arrange(SciName) %>% 
+                                       pull(), '*')) +
+  theme(legend.position = 'bottom', legend.text = element_markdown())
+
+#ggsave(paste0('Invasive_', form, '.jpg'), width = 8, height = 6, units = 'in', dpi = 600)
+```
+
+
+```{r}
+m <- get_map(location = c(-120,25,-70,50), maptype = 'toner', source = 'stamen', force = T)
+
+g <- ggmap(m)
+g <- g+stat_density2d(aes(x = Longitude, y = Latitude, fill=..level..), data=ed_tb %>% filter(Form == 'FORB'),geom="polygon", alpha=0.5)
+g + scale_fill_gradient(low = "yellow", high = "red")
+```
+

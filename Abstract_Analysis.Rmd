@@ -1,0 +1,41 @@
+---
+title: "Abstract Wordcloud"
+output: html_notebook
+---
+
+```{r}
+library(clipr)
+library(tidyverse)
+library(wordcloud)
+library(tm)
+```
+
+```{r}
+abstrct = readLines(con = "./Wordcloud/Review_Abstracts_v2.txt")
+
+abstrct.corpus = abstrct  %>% 
+  tm::VectorSource() %>% 
+  tm::Corpus()
+
+#abstrct.corpus %>% tm::inspect()
+abstrct.corpus <- tm_map(abstrct.corpus, removePunctuation, preserve_intra_word_dashes = T) %>% 
+  tm_map(content_transformer(tolower)) %>% 
+  tm_map(removeNumbers) %>% 
+  tm_map(removeWords, stopwords("english")) %>% 
+  tm_map(removeWords, c('one', 'two', 'three', 'four', 'also')) %>% 
+  tm_map(content_transformer(gsub), pattern = '-', replacement = ' ')
+
+term.matrix <- TermDocumentMatrix(abstrct.corpus)
+term.matrix <- as.matrix(term.matrix)
+term.matrix <- rowSums(term.matrix) %>% 
+  data.frame(word = names(.), freq = .) %>% 
+  filter(word != '–') %>% 
+  arrange(-freq)
+
+write_clip(term.matrix[1:300,], row.names=F)
+head(term.matrix, 20)
+x11(width = 10, height = 10)
+wordcloud(words = term.matrix$word, freq = term.matrix$freq, max.words=200,
+          rot.per = 0.35, random.order=FALSE, colors = brewer.pal(8, "Dark2"))
+```
+

@@ -1,0 +1,55 @@
+---
+title: "Tree_map"
+output: html_document
+date: "2023-04-28"
+---
+
+```{r Load packages, include=FALSE, message=FALSE, warning=FALSE, echo=FALSE}
+library(sf)
+library(dplyr)
+library(stringr)
+library(leaflet)
+library(leafgl)
+```
+
+```{r Load base layer, message=FALSE, warning=FALSE, echo=FALSE}
+base_lyr <- st_read('./Spatial_Data/NA_lyr_clip.shp', quiet = T) %>% st_zm() %>% st_cast("POLYGON") %>% st_cast('LINESTRING')
+```
+
+```{r Read tree layers, message=FALSE, warning=FALSE, echo=FALSE}
+fllst <- list.files(path = './Spatial_Data', pattern = '[.]gpkg', full.names = T)
+tree_fllst <- fllst[grepl('/TREE', fllst)]
+tree_lyrs <- lapply(tree_fllst, st_read, quiet=T)
+tree_names <- tree_fllst %>% str_split_i(pattern = '/', i = 3) %>% str_remove_all('[.]gpkg|TREE_')
+names(tree_lyrs) <- tree_names
+
+tree_pal <- c('#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c')
+
+```
+
+## Tree species
+```{r Map trees, echo=FALSE, message=FALSE, warning=FALSE}
+m <- leaflet(options = leafletOptions(minZoom = 4, maxZoom = 7)) %>% 
+  addGlPolylines(base_lyr, color = 'black', weight = 0.5)
+
+for (i in 1:length(tree_lyrs)){
+  m <- m %>% 
+    addGlPoints(data = tree_lyrs[[i]], fillColor = tree_pal[i], group = names(tree_lyrs)[i] %>% str_replace_all('_', ' '), fillOpacity = 1.0, radius = 5)
+}
+
+m <- m %>% 
+  addLayersControl(overlayGroups = names(tree_lyrs) %>% str_replace_all('_', ' ')) %>% 
+  setMaxBounds(-109, 24, -58, 56) 
+
+m
+```
+
+```{r echo=FALSE, results="asis"}
+cat("
+<style>
+.leaflet-container {
+    background: #FFF;
+}
+</style>
+")
+```
