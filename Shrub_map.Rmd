@@ -53,5 +53,10 @@ cat("
     background: #FFF;
 }
 </style>
+<style>
+.info {
+    font-style: italic;
+}
+</style>
 ")
 ```
