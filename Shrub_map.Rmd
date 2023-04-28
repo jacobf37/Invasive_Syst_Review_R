@@ -22,6 +22,7 @@ shrub_fllst <- fllst[grepl('/SHRUB', fllst)]
 shrub_lyrs <- lapply(shrub_fllst, st_read, quiet=T)
 shrub_names <- shrub_fllst %>% str_split_i(pattern = '/', i = 3) %>% str_remove_all('[.]gpkg|SHRUB_')
 names(shrub_lyrs) <- shrub_names
+shrub_names <- names(shrub_lyrs) %>% str_replace_all('_', ' ')
 
 shrub_pal <- c('#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c','#fdbf6f','#ff7f00','#cab2d6','#6a3d9a','#ffff99','#b15928','#E600A9','#C500FF')
 
@@ -34,10 +35,11 @@ m <- leaflet(width = 1200, height = 1100, padding = 0, options = leafletOptions(
 
 for (i in 1:length(shrub_lyrs)){
   m <- m %>% 
-    addGlPoints(data = shrub_lyrs[[i]], fillColor = shrub_pal[i], group = names(shrub_lyrs)[i] %>% str_replace_all('_', ' '), fillOpacity = 1.0, radius = 5)
+    addGlPoints(data = shrub_lyrs[[i]], fillColor = shrub_pal[i], group = shrub_names[i], fillOpacity = 1.0, radius = 5)
 }
 
 m <- m %>% 
+  addLegend(colors = shrub_pal, labels = shrub_names, position = 'bottomright', opacity = 1.0) %>% 
   addLayersControl(overlayGroups = names(shrub_lyrs) %>% str_replace_all('_', ' ')) %>% 
   setMaxBounds(-109, 24, -58, 56) 
 
