@@ -30,7 +30,7 @@ shrub_pal <- c('#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c','#fdb
 
 ## Shrub species
 ```{r Map shrubs, echo=FALSE, message=FALSE, warning=FALSE}
-m <- leaflet(width = 1200, height = 1100, padding = 0, options = leafletOptions(minZoom = 5, maxZoom = 7)) %>% 
+m <- leaflet(width = 1100, height = 800, padding = 0, options = leafletOptions(minZoom = 5, maxZoom = 7)) %>% 
   addGlPolylines(base_lyr, color = 'black', weight = 0.5)
 
 for (i in 1:length(shrub_lyrs)){
@@ -40,8 +40,8 @@ for (i in 1:length(shrub_lyrs)){
 
 m <- m %>% 
   addLegend(colors = shrub_pal, labels = shrub_names, position = 'bottomright', opacity = 1.0) %>% 
-  addLayersControl(overlayGroups = names(shrub_lyrs) %>% str_replace_all('_', ' ')) %>% 
-  setMaxBounds(-109, 24, -58, 56) 
+  addLayersControl(overlayGroups = shrub_names) %>% 
+  setMaxBounds(-109, 26, -58, 50) 
 
 m
 ```
