@@ -1,0 +1,62 @@
+---
+title: "Invasive Plants in Eastern North America"
+output: html_document
+date: "2023-04-28"
+---
+
+```{r Load packages, include=FALSE, message=FALSE, warning=FALSE, echo=FALSE}
+library(sf)
+library(dplyr)
+library(stringr)
+library(leaflet)
+library(leafgl)
+```
+
+```{r Load base layer, message=FALSE, warning=FALSE, echo=FALSE}
+base_lyr <- st_read('./Spatial_Data/NA_lyr_clip.shp', quiet = T) %>% st_zm() %>% st_cast("POLYGON") %>% st_cast('LINESTRING')
+```
+
+```{r Read subshrub layers, echo=FALSE}
+fllst <- list.files(path = './Spatial_Data', pattern = '[.]gpkg', full.names = T)
+subshrub_fllst <- fllst[grepl('/SUBSHRUB', fllst)]
+subshrub_lyrs <- lapply(subshrub_fllst, st_read, quiet=T)
+subshrub_names <- subshrub_fllst %>% str_split_i(pattern = '/', i = 3) %>% str_remove_all('[.]gpkg|SUBSHRUB_')
+names(subshrub_lyrs) <- subshrub_names
+subshrub_names <- names(subshrub_lyrs) %>% str_replace_all('_', ' ')
+
+subshrub_pal <- c('#1b9e77', '#d95f02')
+
+```
+
+## Subshrub species
+```{r Map subshrubs, echo=FALSE, message=FALSE, warning=FALSE}
+m <- leaflet(width = 1100, height = 800, padding = 0, options = leafletOptions(minZoom = 5, maxZoom = 7)) %>% 
+  addGlPolylines(base_lyr, color = 'black', weight = 0.5)
+
+for (i in 1:length(subshrub_lyrs)){
+  m <- m %>% 
+    addGlPoints(data = subshrub_lyrs[[i]], fillColor = subshrub_pal[i], group = subshrub_names[i], fillOpacity = 1.0, radius = 5)
+}
+
+m <- m %>% 
+  addLegend(colors = subshrub_pal, labels = subshrub_names, position = 'bottomright', opacity = 1.0) %>% 
+  addLayersControl(overlayGroups = subshrub_names) %>% 
+  setMaxBounds(-109, 25, -58, 50) 
+
+m
+```
+
+```{r echo=FALSE, results="asis"}
+cat("
+<style>
+.leaflet-container {
+    background: #FFF;
+}
+</style>
+<style>
+.info {
+    font-style: italic;
+}
+</style>
+")
+```

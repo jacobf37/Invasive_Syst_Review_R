@@ -1,0 +1,62 @@
+---
+title: "Invasive Plants in Eastern North America"
+output: html_document
+date: "2023-04-28"
+---
+
+```{r Load packages, include=FALSE, message=FALSE, warning=FALSE, echo=FALSE}
+library(sf)
+library(dplyr)
+library(stringr)
+library(leaflet)
+library(leafgl)
+```
+
+```{r Load base layer, message=FALSE, warning=FALSE, echo=FALSE}
+base_lyr <- st_read('./Spatial_Data/NA_lyr_clip.shp', quiet = T) %>% st_zm() %>% st_cast("POLYGON") %>% st_cast('LINESTRING')
+```
+
+```{r Read vine layers, echo=FALSE}
+fllst <- list.files(path = './Spatial_Data', pattern = '[.]gpkg', full.names = T)
+vine_fllst <- fllst[grepl('/VINE', fllst)]
+vine_lyrs <- lapply(vine_fllst, st_read, quiet=T)
+vine_names <- vine_fllst %>% str_split_i(pattern = '/', i = 3) %>% str_remove_all('[.]gpkg|VINE_')
+names(vine_lyrs) <- vine_names
+vine_names <- names(vine_lyrs) %>% str_replace_all('_', ' ')
+
+vine_pal <- c('#1b9e77','#d95f02','#7570b3','#e7298a','#66a61e','#e6ab02')
+
+```
+
+## Vine species
+```{r Map vines, echo=FALSE, message=FALSE, warning=FALSE}
+m <- leaflet(width = 1100, height = 800, padding = 0, options = leafletOptions(minZoom = 5, maxZoom = 7)) %>% 
+  addGlPolylines(base_lyr, color = 'black', weight = 0.5)
+
+for (i in 1:length(vine_lyrs)){
+  m <- m %>% 
+    addGlPoints(data = vine_lyrs[[i]], fillColor = vine_pal[i], group = vine_names[i], fillOpacity = 1.0, radius = 5)
+}
+
+m <- m %>% 
+  addLegend(colors = vine_pal, labels = vine_names, position = 'bottomright', opacity = 1.0) %>% 
+  addLayersControl(overlayGroups = vine_names) %>% 
+  setMaxBounds(-109, 25, -58, 50) 
+
+m
+```
+
+```{r echo=FALSE, results="asis"}
+cat("
+<style>
+.leaflet-container {
+    background: #FFF;
+}
+</style>
+<style>
+.info {
+    font-style: italic;
+}
+</style>
+")
+```

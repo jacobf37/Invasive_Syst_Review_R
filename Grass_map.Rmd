@@ -1,0 +1,62 @@
+---
+title: "Invasive Plants in Eastern North America"
+output: html_document
+date: "2023-04-28"
+---
+
+```{r Load packages, include=FALSE, message=FALSE, warning=FALSE, echo=FALSE}
+library(sf)
+library(dplyr)
+library(stringr)
+library(leaflet)
+library(leafgl)
+```
+
+```{r Load base layer, message=FALSE, warning=FALSE, echo=FALSE}
+base_lyr <- st_read('./Spatial_Data/NA_lyr_clip.shp', quiet = T) %>% st_zm() %>% st_cast("POLYGON") %>% st_cast('LINESTRING')
+```
+
+```{r Read grass layers, echo=FALSE}
+fllst <- list.files(path = './Spatial_Data', pattern = '[.]gpkg', full.names = T)
+grass_fllst <- fllst[grepl('/GRASS', fllst)]
+grass_lyrs <- lapply(grass_fllst, st_read, quiet=T)
+grass_names <- grass_fllst %>% str_split_i(pattern = '/', i = 3) %>% str_remove_all('[.]gpkg|GRASS_')
+names(grass_lyrs) <- grass_names
+grass_names <- names(grass_lyrs) %>% str_replace_all('_', ' ')
+
+grass_pal <- c('#1b9e77','#d95f02')
+
+```
+
+## Grass species
+```{r Map grasss, echo=FALSE, message=FALSE, warning=FALSE}
+m <- leaflet(width = 1100, height = 800, padding = 0, options = leafletOptions(minZoom = 5, maxZoom = 7)) %>% 
+  addGlPolylines(base_lyr, color = 'black', weight = 0.5)
+
+for (i in 1:length(grass_lyrs)){
+  m <- m %>% 
+    addGlPoints(data = grass_lyrs[[i]], fillColor = grass_pal[i], group = grass_names[i], fillOpacity = 1.0, radius = 5)
+}
+
+m <- m %>% 
+  addLegend(colors = grass_pal, labels = grass_names, position = 'bottomright', opacity = 1.0) %>% 
+  addLayersControl(overlayGroups = grass_names) %>% 
+  setMaxBounds(-109, 25, -58, 50) 
+
+m
+```
+
+```{r echo=FALSE, results="asis"}
+cat("
+<style>
+.leaflet-container {
+    background: #FFF;
+}
+</style>
+<style>
+.info {
+    font-style: italic;
+}
+</style>
+")
+```

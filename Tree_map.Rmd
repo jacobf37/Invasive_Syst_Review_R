@@ -22,6 +22,7 @@ tree_fllst <- fllst[grepl('/TREE', fllst)]
 tree_lyrs <- lapply(tree_fllst, st_read, quiet=T)
 tree_names <- tree_fllst %>% str_split_i(pattern = '/', i = 3) %>% str_remove_all('[.]gpkg|TREE_')
 names(tree_lyrs) <- tree_names
+tree_names <- names(tree_lyrs) %>% str_replace_all('_', ' ')
 
 tree_pal <- c('#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c')
 
@@ -29,17 +30,18 @@ tree_pal <- c('#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c')
 
 ## Tree species
 ```{r Map trees, echo=FALSE, message=FALSE, warning=FALSE}
-m <- leaflet(options = leafletOptions(minZoom = 4, maxZoom = 7)) %>% 
+m <- leaflet(width = 1100, height = 800, padding = 0, options = leafletOptions(minZoom = 5, maxZoom = 7)) %>% 
   addGlPolylines(base_lyr, color = 'black', weight = 0.5)
 
 for (i in 1:length(tree_lyrs)){
   m <- m %>% 
-    addGlPoints(data = tree_lyrs[[i]], fillColor = tree_pal[i], group = names(tree_lyrs)[i] %>% str_replace_all('_', ' '), fillOpacity = 1.0, radius = 5)
+    addGlPoints(data = tree_lyrs[[i]], fillColor = tree_pal[i], group = tree_names[i], fillOpacity = 1.0, radius = 5)
 }
 
 m <- m %>% 
-  addLayersControl(overlayGroups = names(tree_lyrs) %>% str_replace_all('_', ' ')) %>% 
-  setMaxBounds(-109, 24, -58, 56) 
+  addLegend(colors = tree_pal, labels = tree_names, position = 'bottomright', opacity = 1.0) %>% 
+  addLayersControl(overlayGroups = tree_names) %>% 
+  setMaxBounds(-109, 25, -58, 50) 
 
 m
 ```
@@ -49,6 +51,11 @@ cat("
 <style>
 .leaflet-container {
     background: #FFF;
+}
+</style>
+<style>
+.info {
+    font-style: italic;
 }
 </style>
 ")

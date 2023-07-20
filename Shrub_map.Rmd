@@ -41,7 +41,7 @@ for (i in 1:length(shrub_lyrs)){
 m <- m %>% 
   addLegend(colors = shrub_pal, labels = shrub_names, position = 'bottomright', opacity = 1.0) %>% 
   addLayersControl(overlayGroups = shrub_names) %>% 
-  setMaxBounds(-109, 26, -58, 50) 
+  setMaxBounds(-109, 25, -58, 50) 
 
 m
 ```
