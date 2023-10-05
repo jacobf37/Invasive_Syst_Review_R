@@ -1,0 +1,62 @@
+---
+title: "Supplemental Data"
+output: html_document
+date: "2023-10-05"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(readxl)
+library(DT)
+```
+
+```{r include=FALSE}
+tb_1 <- read_xlsx('./Data/Supplemental Table 1_Systematic Review Papers.xlsx',
+                sheet = 'Systematic Review Papers',
+                range = 'A1:AN166')
+
+tb_2 <- read_xlsx('./Data/Supplemental Table 1_Systematic Review Papers.xlsx',
+                sheet = 'MetaData',
+                range = 'A1:B41')
+
+tb_3 <- read_xlsx('./Data/Supplemental Table 1_Systematic Review Papers.xlsx',
+                sheet = 'Invasive Plant List',
+                range = 'A2:E44')
+```
+
+## Systematic review papers
+```{r echo=FALSE}
+datatable(tb_1, 
+          extensions = 'Scroller', 
+          rownames = F,
+          #width = 1000, 
+          options = list(scrollY = 600,
+                         scroller = T,
+                         scrollX = 600,
+                         pageLength = 5))
+```
+
+## Metadata
+```{r echo=FALSE}
+datatable(tb_2, 
+          extensions = 'Scroller', 
+          rownames = F)
+
+```
+
+## Invasive plant list
+```{r echo=FALSE}
+datatable(tb_3, 
+          extensions = 'Scroller', 
+          rownames = F,
+          #width = 1000, 
+          options = list(scrollY = 600,
+                         scroller = T,
+                         scrollX = 600,
+                         pageLength = 5))
+```
+
+Based on [USDA Plants Database](https://plants.usda.gov/home)
+
