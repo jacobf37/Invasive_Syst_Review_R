@@ -15,13 +15,18 @@ library(DT)
 ```{r include=FALSE}
 tb_1 <- read_xlsx('./Data/Supplemental Table 1_Systematic Review Papers.xlsx',
                 sheet = 'Systematic Review Papers',
-                range = 'A1:AN166')
+                range = 'A1:AN166') %>% 
+  mutate(DOI = ifelse(is.na(DOI), NA, paste0("<a  href='", DOI, "'>", DOI,"</a>")))
 
 tb_2 <- read_xlsx('./Data/Supplemental Table 1_Systematic Review Papers.xlsx',
+                sheet = 'Herbicide',
+                range = 'A1:E241')
+
+tb_3 <- read_xlsx('./Data/Supplemental Table 1_Systematic Review Papers.xlsx',
                 sheet = 'MetaData',
                 range = 'A1:B41')
 
-tb_3 <- read_xlsx('./Data/Supplemental Table 1_Systematic Review Papers.xlsx',
+tb_4 <- read_xlsx('./Data/Supplemental Table 1_Systematic Review Papers.xlsx',
                 sheet = 'Invasive Plant List',
                 range = 'A2:E44')
 ```
@@ -35,12 +40,25 @@ datatable(tb_1,
           options = list(scrollY = 600,
                          scroller = T,
                          scrollX = 600,
-                         pageLength = 5))
+                         pageLength = 5),
+          escape = F)
 ```
+
+## Herbicide
+```{r echo=FALSE}
+datatable(tb_2, 
+          extensions = 'Scroller', 
+          rownames = F,
+          options = list(scrollY = 600,
+               scroller = T,
+               scrollX = 600,
+               pageLength = 5))
+```
+
 
 ## Metadata
 ```{r echo=FALSE}
-datatable(tb_2, 
+datatable(tb_3, 
           extensions = 'Scroller', 
           rownames = F)
 
@@ -48,7 +66,7 @@ datatable(tb_2,
 
 ## Invasive plant list
 ```{r echo=FALSE}
-datatable(tb_3, 
+datatable(tb_4, 
           extensions = 'Scroller', 
           rownames = F,
           #width = 1000, 
